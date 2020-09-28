@@ -2,8 +2,8 @@ import numpy as np
 
 import tensorflow as tf
 import tensorflow_probability as tfp
-from sklearn.datasets import load_boston
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.datasets import fetch_openml
+from sklearn.preprocessing import StandardScaler
 from tensorflow.python.keras.losses import mean_squared_error
 
 tfd = tfp.distributions
@@ -61,8 +61,11 @@ class BayesianLinear(object):
     def _reparametrize(self, mu, std, eps):
         return mu + tf.math.softplus(std) * eps
 
-    def forward(self, x):
+    def forward(self, x, inference=False):
         # Sample W and bias...
+
+        if inference:
+            return tf.matmul(x, self.kernel_mu) + self.bias_mu
 
         W = self._reparametrize(self.kernel_mu, self.kernel_rho, tf.random.normal(shape=self.hidden_shape))
         b = self._reparametrize(self.bias_mu, self.bias_rho, tf.random.normal(shape=[self.hidden_units]))
@@ -86,32 +89,41 @@ class BayesianLinear(object):
         return tf.matmul(x, W) + b
 
 
-x, y = load_boston(return_X_y=True)
+x, y = fetch_openml('mnist_784', version=1, return_X_y=True)
 
-x = MinMaxScaler().fit_transform(x)
+x = StandardScaler().fit_transform(x)
 
 x = tf.convert_to_tensor(x, dtype=tf.float32)
 y = tf.convert_to_tensor(y, dtype=tf.float32)
 
-tf_data = tf.data.Dataset.from_tensor_slices((x, y)).shuffle(100).batch(32)
-n_batches = len(tf_data)
+subset_size = len(x)
+train_size = 0.7
+batch_size = 128
+tf_data = tf.data.Dataset.from_tensor_slices((x, y)).shuffle(100).take(subset_size)
+train_data = tf_data.take(int(train_size * subset_size))
+test_data = tf_data.skip(int(train_size * subset_size))
 
-l1 = BayesianLinear(13, 15)
-l2 = BayesianLinear(15, 1)
+nr_testdatapoints = len(test_data)
+print(len(train_data), len(test_data))
+
+train_data = train_data.batch(batch_size)
+test_data = test_data.batch(batch_size)
+
+n_batches = len(train_data)
+n_testbatches = len(test_data)
+
+l1 = BayesianLinear(784, 1000)
+l2 = BayesianLinear(1000, 10)
 
 opt = tf.optimizers.Adam(learning_rate=0.08)
 
-W_SAMPLES = 5
+W_SAMPLES = 2
 
-for epochs in range(100):
+for epochs in range(10):
     # Shuffle data after epochs...
-    mses = []
-    tf_data = tf_data.shuffle(100)
     running_loss = 0.0
-    running_posterior = 0.0
-    running_prior = 0.0
-    running_likelihood = 0.0
-    for batch_id, (x, y) in enumerate(tf_data):
+
+    for batch_id, (x, y) in enumerate(train_data):
         with tf.GradientTape() as tape:
 
             # Net outputs...
@@ -133,22 +145,15 @@ for epochs in range(100):
             log_posteriors = tf.convert_to_tensor(log_posteriors)  # shape w_samples
 
             # means = outputs
-            means = tf.squeeze(tf.reduce_mean(outputs, axis=0), 1)
+            means = tf.reduce_mean(outputs, axis=0)
             # stddevs = tf.math.softplus(outputs[..., 1])
 
-            mse = mean_squared_error(y, tf.reduce_mean(means, axis=0))
-            mses.append(mse)
-
-            likelihood_dist = tfd.Normal(loc=means, scale=1)
+            likelihood_dist = tfd.Categorical(logits=means)
             # Vector of (w_samples, batch_size)
             log_likelihood = likelihood_dist.log_prob(y)
 
             # kl_weights = tf.cast((tf.pow(2, n_batches - batch_id)) / (tf.pow(2, n_batches) - 1), tf.float32)
             kl_weights = 1 / n_batches
-
-            running_posterior += tf.reduce_sum(log_posteriors)
-            running_prior += tf.reduce_sum(log_priors)
-            running_likelihood += tf.reduce_sum(log_likelihood)
 
             loss = kl_weights * (tf.reduce_sum(log_posteriors) - tf.reduce_sum(log_priors)) - tf.reduce_sum(log_likelihood)
             running_loss += loss
@@ -161,8 +166,21 @@ for epochs in range(100):
         grads = tape.gradient(loss, trainable_vars)
         opt.apply_gradients(zip(grads, trainable_vars))
 
-    print("total {}, posterior {} prior {} likelihood {}".format(running_loss, running_posterior, running_prior, running_likelihood))
-    running_posterior = 0.0
-    running_prior = 0.0
-    running_likelihood = 0.0
+    correct_test = 0.0
+    for batch_id, (x, y) in enumerate(test_data):
+        z = l1.forward(x, inference=True)
+        z = tf.nn.relu(z)
+        z = l2.forward(z, inference=True)
+        preds = tf.nn.softmax(z)
+
+        binary_comp = tf.cast(tf.argmax(preds, axis=1), tf.float32) == y
+        correctly_classified = tf.reduce_sum(tf.cast(binary_comp, tf.float32))
+        assert correctly_classified <= batch_size
+
+        correct_test += correctly_classified
+
+    test_accuracy = correct_test / float(nr_testdatapoints)
+    correct_test = 0.0
+    print("train_loss {} test_accuracy {}".format(running_loss, test_accuracy))
+
     running_loss = 0.0
