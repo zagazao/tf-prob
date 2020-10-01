@@ -4,7 +4,6 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 from sklearn.datasets import fetch_openml
 from sklearn.preprocessing import StandardScaler
-from tensorflow.python.keras.losses import mean_squared_error
 
 tfd = tfp.distributions
 
@@ -26,9 +25,6 @@ class BayesianLinear(object):
         self.bias_rho = tf.Variable(tf.zeros(shape=[hidden_units]), name='bias_rho')
 
         # Specify prior as independent normal distributions..
-        # self.prior_kernel = tfd.Independent(tfp.distributions.Normal(loc=tf.zeros(shape=(input_shape, hidden_units)), scale=1.0), reinterpreted_batch_ndims=2)
-        # self.prior_bias = tfd.Independent(tfp.distributions.Normal(loc=tf.zeros(shape=hidden_units), scale=1.0), reinterpreted_batch_ndims=1)
-
         self.prior_bias = tfd.Independent(tfd.Mixture(
             cat=tfd.Categorical(probs=np.tile([0.5, 0.5], (hidden_units, 1))),
             components=[
@@ -79,13 +75,6 @@ class BayesianLinear(object):
         self.log_prior = prior_log_prob_w + prior_log_prob_b
         self.log_posterior = posterior_log_prob_w + posterior_log_prob_b
 
-        #
-        # kl_div_kernel = kl_divergence(self.prior_kernel, self.posterior_kernel)
-        # kl_div_bias = kl_divergence(self.prior_bias, self.posterior_bias)
-
-        # self.kl_div = kl_div_kernel + kl_div_bias
-
-        # Calculate loss... and store this somewhere???
         return tf.matmul(x, W) + b
 
 
@@ -126,9 +115,6 @@ for epochs in range(10):
     for batch_id, (x, y) in enumerate(train_data):
         with tf.GradientTape() as tape:
 
-            # Net outputs...
-            # Log priors...
-            # Log posteriors..
             outputs, log_priors, log_posteriors = [], [], []
 
             for wi in range(W_SAMPLES):
@@ -145,19 +131,19 @@ for epochs in range(10):
             log_posteriors = tf.convert_to_tensor(log_posteriors)  # shape w_samples
 
             # means = outputs
-            means = tf.reduce_mean(outputs, axis=0)
+            # means = tf.reduce_mean(outputs, axis=0)
             # stddevs = tf.math.softplus(outputs[..., 1])
 
-            likelihood_dist = tfd.Categorical(logits=means)
+            likelihood_dist = tfd.Categorical(logits=outputs)
             # Vector of (w_samples, batch_size)
             log_likelihood = likelihood_dist.log_prob(y)
 
             # kl_weights = tf.cast((tf.pow(2, n_batches - batch_id)) / (tf.pow(2, n_batches) - 1), tf.float32)
             kl_weights = 1 / n_batches
 
-            loss = kl_weights * (tf.reduce_sum(log_posteriors) - tf.reduce_sum(log_priors)) - tf.reduce_sum(log_likelihood)
+            loss = kl_weights * (tf.reduce_sum(log_posteriors) - tf.reduce_sum(log_priors)) - tf.reduce_sum(log_likelihood) * 49000 / 128
             running_loss += loss
-            #print('{:10.3f} - {:10.3f} - {:10.3f}'.format(log_likelihood.numpy().mean(), loss.numpy(), mse.numpy()))
+            # print('{:10.3f} - {:10.3f} - {:10.3f}'.format(log_likelihood.numpy().mean(), loss.numpy(), mse.numpy()))
 
         # print(np.mean(mses))
         # df/dw, muss man da nicht das gesampelte (gemittelte) w nehmen? also tape.gradient(loss, w_samples) ? 

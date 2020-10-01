@@ -104,8 +104,8 @@ prior_params = {
 }
 
 x_in = Input(shape=(1,))
-x = DenseVariational(20, kl_weight, **prior_params, activation='relu')(x_in)
-x = DenseVariational(20, kl_weight, **prior_params, activation='relu')(x)
+x = DenseVariational(1000, kl_weight, **prior_params, activation='relu')(x_in)
+x = DenseVariational(1000, kl_weight, **prior_params, activation='relu')(x)
 x = DenseVariational(1, kl_weight, **prior_params)(x)
 
 model = Model(x_in, x)

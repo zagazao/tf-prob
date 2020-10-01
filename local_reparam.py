@@ -130,11 +130,17 @@ train_log_dir = 'logs/gradient_tape/' + current_time + '/train'
 test_log_dir = 'logs/gradient_tape/' + current_time + '/test'
 train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 
+# x -> Conv -> Dense -> mu, sigma (€ R^k) reparam(mu, sigma) -> Dense -> DeConv -> x_out
+# Loss = MSE(x, x_out) + KL(q(), N(0,1))
+# p(W) = N(w|0,1)
+
 # 2d idx to linear 1 d
 # (i,j) i * n_batches + j
 
+# \prod_i q_i(z_i)
+#  i = N(i0-i9|mu, SIGMA)
 
-for epochs in range(50):
+for epochs in range(100):
     # Shuffle data after epochs...
     running_loss = 0.0
 
