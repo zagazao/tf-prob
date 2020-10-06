@@ -86,7 +86,18 @@ class BayesianLinear(keras.layers.Layer):
 
 
 def neg_log_likelihood(y_obs, y_pred):
+    # if np.isclose(tf.reduce_sum(y_pred, axis=2), 1).all():
+    #     dist = tfd.Categorical(probs=y_pred)
+    # else:
+    # print(y_pred)
+
+    # y_pred is softmax_out
+    # y_obs = 5
+    # tf.math.log(y_preds[y_obs])
+
+    from tensorflow.keras.losses import SparseCategoricalCrossentropy
+    loss_obj = SparseCategoricalCrossentropy()
+    result = loss_obj(y_obs, y_pred)
+
     dist = tfd.Categorical(logits=y_pred)
     return tf.reduce_sum(-dist.log_prob(y_obs))
-
-
