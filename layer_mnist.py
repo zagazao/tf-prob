@@ -1,5 +1,3 @@
-import numpy as np
-
 import tensorflow as tf
 import tensorflow_probability as tfp
 from sklearn.datasets import fetch_openml
@@ -33,10 +31,10 @@ n_batches = len(train_data)
 n_testbatches = len(test_data)
 
 model = BNN([
-            BayesianLinear(784, 1000), 
-            tf.nn.relu, 
-            BayesianLinear(1000, 10)
-        ])
+    BayesianLinear(784, 1000),
+    tf.nn.relu,
+    BayesianLinear(1000, 10)
+])
 
 opt = tf.optimizers.Adam(learning_rate=0.08)
 
@@ -62,8 +60,8 @@ for epochs in range(10):
             log_priors = tf.convert_to_tensor(log_priors)  # shape w_samples
             log_posteriors = tf.convert_to_tensor(log_posteriors)  # shape w_samples
 
-            #log_priors = tf.reduce_sum(log_priors)
-            #log_posteriors = tf.reduce_sum(log_posteriors)
+            # log_priors = tf.reduce_sum(log_priors)
+            # log_posteriors = tf.reduce_sum(log_posteriors)
             # means = outputs
             # means = tf.reduce_mean(outputs, axis=0)
             # stddevs = tf.math.softplus(outputs[..., 1])

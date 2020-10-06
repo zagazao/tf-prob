@@ -1,14 +1,16 @@
+from abc import ABC
+
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-from abc import ABC, abstractmethod 
 
 tfd = tfp.distributions
+
 
 class ProbabilisticLayer(ABC):
 
     def __call__(self, x, inference=False):
-        pass 
+        pass
 
 
 class BayesianLinear(ProbabilisticLayer):
@@ -109,4 +111,3 @@ class BNN(object):
                 trainable_vars += layer.get_trainable_vars()
 
         return trainable_vars
-
