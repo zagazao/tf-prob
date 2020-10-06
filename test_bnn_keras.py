@@ -40,6 +40,7 @@ for epochs in range(50):
     for batch_id, (x, y) in enumerate(tf_train):
         running_loss += train_step(x, y)
 
-    train_loss, acc = model.evaluate(tf_test, verbose=0)
-    print("train_loss {} test_accuracy {}".format(running_loss / len(tf_train), acc))
+    test_loss, test_acc = model.evaluate(tf_test, verbose=0)
+    train_loss, train_acc = model.evaluate(tf_train, verbose=0)
+    print("train_loss {} train_accuracy {} test_accuracy {}".format(running_loss / len(tf_train), train_acc, test_acc))
 
