@@ -14,16 +14,17 @@ bs_test = len(tf_test)
 model = keras.Sequential(
     [keras.Input(shape=(784,)),
      BayesianLinear(1000, activation=tf.nn.relu, kl_weight=1.0 / bs_train),
-     BayesianLinear(10, activation=keras.activations.softmax, kl_weight=1.0 / bs_train)])  # activation=tf.nn.softmax,
+     BayesianLinear(128, activation=tf.nn.relu, kl_weight=1.0 / bs_train),
+     BayesianLinear(10, kl_weight=1.0 / bs_train)])  # activation=tf.nn.softmax,
 
 model.compile(metrics='accuracy')  # optimizer=keras.optimizers.Adam(lr=0.08))  # ,loss=neg_log_likelihood, metrics=['accuracy']
 
-optimizer = keras.optimizers.Adam(lr=0.08)
+optimizer = keras.optimizers.Adam(lr=0.0008)
 
-W_SAMPLES = 1
+W_SAMPLES = 2
 
 
-# @tf.function
+@tf.function
 def train_step(x, y):
     with tf.GradientTape() as tape:
         logits = model(x, training=True)
@@ -42,7 +43,3 @@ for epochs in range(50):
     train_loss, acc = model.evaluate(tf_test, verbose=0)
     print("train_loss {} test_accuracy {}".format(running_loss / len(tf_train), acc))
 
-exit(1)
-
-# model.fit(train_data, validation_data=test_data, batch_size=32, epochs=10, verbose=1)
-# Iterate over the batches of a dataset.
