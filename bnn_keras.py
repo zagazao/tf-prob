@@ -7,6 +7,11 @@ from tensorflow.keras import initializers
 tfd = tfp.distributions
 
 
+class Initializer(object):
+    ...
+    # DenseVariational(units=1, input=n_neuron)
+
+
 class BayesianLinear(keras.layers.Layer):
 
     def __init__(self, units, activation=keras.activations.linear, sigma1=1.5, sigma2=0.1, kl_weight=1):
