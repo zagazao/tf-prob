@@ -63,7 +63,7 @@ tfd = tfp.distributions
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data(path='mnist.npz')
 
 mnist_digits = np.concatenate([x_train, x_test], axis=0)
-mnist_digits = (mnist_digits.astype("float32") / 255).reshape(mnist_digits.shape[0], 784)
+mnist_digits = (mnist_digits.astype("float64") / 255).reshape(mnist_digits.shape[0], 784)
 
 
 # https://blog.keras.io/building-autoencoders-in-keras.html Here they don't use unit normal but 0.1 stddev...
@@ -87,7 +87,7 @@ class SampleLayer(keras.layers.Layer):
         # Assumption: z_sigma is z_log_sigma
         kl_div = 1 + z_log_var - tf.square(z_mu) - tf.math.exp(z_log_var)
         # * -0.5 Why the hell???
-        kl_div = -0.5 * tf.reduce_sum(kl_div)
+        kl_div = -0.5 * tf.reduce_sum(kl_div) / (128 * 784)
 
         # kl_div = tf.reduce_sum(1 + tf.math.log(z_sigma ** 2) - z_mu ** 2 - z_sigma ** 2)
 
@@ -102,9 +102,7 @@ class SampleLayer(keras.layers.Layer):
 input_dim = 784
 latent_dim = 2
 
-# H1 -> hidden_params -> sample -> H2
-
-activation = 'relu'  # 'relu
+activation = 'tanh'  # 'relu
 
 inputs = keras.Input(shape=(input_dim,))
 
@@ -118,8 +116,6 @@ z_sigma = keras.layers.Dense(units=latent_dim, name='z_sigma')(x)
 sample = SampleLayer()([z_mu, z_sigma])
 
 input_enc = keras.Input(shape=(latent_dim,))
-# 2 conv layers
-# x = keras.layers.Conv2D(filters=32, kernel_size=(3, 3))
 
 x = keras.layers.Dense(units=64, activation=activation)(input_enc)
 x = keras.layers.Dense(units=128, activation=activation)(x)
@@ -150,23 +146,23 @@ class VAE(keras.Model):
             z = self.encoder(data)
             out = self.decoder(z)
 
-            log_likelihood_dist = tfd.Bernoulli(probs=out)
-            log_likelihood = tf.reduce_sum(log_likelihood_dist.log_prob(data))
+            # log_likelihood_dist = tfd.Bernoulli(probs=out)
+            # log_likelihood = - tf.reduce_sum(log_likelihood_dist.log_prob(data))
+
+            # neg_log_likelihood = log_likelihood
 
             # binary_crossentropy
 
-            neg_log_likelihood = tf.reduce_mean(keras.losses.binary_crossentropy(data, out))
-            # reconstruction_loss = tf.reduce_mean(keras.losses.binary_crossentropy(data, out)) * 784
-            # reconstruction_loss = log_likelihood
+            neg_log_likelihood = tf.reduce_sum(keras.losses.binary_crossentropy(data, out))
 
             # kl_div + reconstruction
             kl_div = sum(self.encoder.losses)
 
+            nelbo_loss = neg_log_likelihood + kl_div
             # ELBO = LL - KL
             # NELBO = -ELBO
             #       = -LL + KL    <- We want to minimize this !!!
             # loss = -(kl_div + neg_log_likelihood)  # WTF WILL HAPPEN
-            nelbo_loss = neg_log_likelihood + kl_div
 
         trainable_weights = self.encoder.trainable_weights + self.decoder.trainable_weights
 
@@ -179,11 +175,11 @@ class VAE(keras.Model):
 
 
 vae = VAE(encoder, decoder)
-vae.compile(optimizer=tf.keras.optimizers.Adam(), run_eagerly=True)
+vae.compile(optimizer=tf.keras.optimizers.Adam())  # , run_eagerly=True
 
 print('pre_fit()')
 
-vae.fit(mnist_digits, batch_size=128, verbose=1, epochs=25)
+vae.fit(mnist_digits, batch_size=128, verbose=1, epochs=50)
 
 print('post_fit()')
 
