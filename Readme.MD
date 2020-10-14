@@ -34,6 +34,10 @@ train_op = tf.train.AdamOptimizer().minimize(loss)
 
 - [Practical Variational Inference for Neural Networks](https://papers.nips.cc/paper/4329-practical-variational-inference-for-neural-networks)
 
+### 2012
+
+- [Variational Bayesian Inference with Stochastic Search](https://arxiv.org/abs/1206.6430)
+
 ### 2014
 
 - [Black box variational inference](https://arxiv.org/abs/1401.0118)
