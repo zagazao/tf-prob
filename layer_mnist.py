@@ -3,6 +3,8 @@ import tensorflow_probability as tfp
 from sklearn.datasets import fetch_openml
 from sklearn.preprocessing import StandardScaler
 
+import numpy as np
+
 from bnn import BayesianLinear, BNN
 
 tfd = tfp.distributions
@@ -13,6 +15,9 @@ x = StandardScaler().fit_transform(x)
 
 x = tf.convert_to_tensor(x, dtype=tf.float32)
 y = tf.convert_to_tensor(y, dtype=tf.float32)
+
+def entropy(p):
+    return -tf.reduce_sum(p * tf.math.log(tf.clip_by_value(p,1e-10,1.0)))
 
 subset_size = len(x)
 train_size = 0.7
@@ -39,6 +44,9 @@ model = BNN([
 opt = tf.optimizers.Adam(learning_rate=0.08)
 
 W_SAMPLES = 2
+NR_UNCERTAINTY_SAMPLES = 5
+
+uncertainties = []
 
 for epochs in range(10):
     # Shuffle data after epochs...
@@ -85,9 +93,15 @@ for epochs in range(10):
         opt.apply_gradients(zip(grads, trainable_vars))
 
     correct_test = 0.0
+    tmp_preds = []
     for batch_id, (x, y) in enumerate(test_data):
-        z = model(x, inference=True)
-        preds = tf.nn.softmax(z)
+        model_predictions = []
+        
+        for _ in range(NR_UNCERTAINTY_SAMPLES):
+            model_predictions.append(model(x, inference=False))
+
+        preds = tf.reduce_mean(tf.nn.softmax(model_predictions, axis=-1), axis=0)
+        tmp_preds.append(preds)
 
         binary_comp = tf.cast(tf.argmax(preds, axis=1), tf.float32) == y
         correctly_classified = tf.reduce_sum(tf.cast(binary_comp, tf.float32))
@@ -95,8 +109,12 @@ for epochs in range(10):
 
         correct_test += correctly_classified
 
+    uncertainties.append(entropy(tf.concat(tmp_preds, axis=0)))
+
     test_accuracy = correct_test / float(nr_testdatapoints)
     correct_test = 0.0
     print("train_loss {} test_accuracy {}".format(running_loss, test_accuracy))
 
     running_loss = 0.0
+
+print("Entropy on test per epoch", [ent.numpy() for ent in uncertainties])
