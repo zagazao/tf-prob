@@ -69,3 +69,9 @@ train_op = tf.train.AdamOptimizer().minimize(loss)
 ## Further todos:
 
 - Implement the "good initialization". Therefore we need an implementation of probabilistic linear regression...
+
+### Random resources
+
+- http://krasserm.github.io/2019/03/14/bayesian-neural-networks/
+- http://www.tina-vision.net/docs/memos/2003-003.pdf (KL) 
+- https://infoscience.epfl.ch/record/174055/files/durrieuThiranKelly_kldiv_icassp2012_R1.pdf

@@ -3,8 +3,7 @@ import tensorflow_probability as tfp
 from sklearn.datasets import load_boston
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
-
-from bnn_keras import BayesianLinear
+from tensorflow_probability.python.layers import DenseReparameterization
 
 tfd = tfp.distributions
 
@@ -18,19 +17,22 @@ y = tf.convert_to_tensor(y, dtype=tf.float32)
 tf_data = tf.data.Dataset.from_tensor_slices((x, y)).shuffle(100).batch(32)
 n_batches = len(tf_data)
 
-l1 = BayesianLinear(15, activation=tf.nn.relu).build(input_shape=(13,))
-l2 = BayesianLinear(1).build(input_shape=(15,))
-
-opt = tf.optimizers.Adam(learning_rate=0.08)
-
 W_SAMPLES = 1
 
 # log q(w) - log p (w) = log (q(w) / p(w)) : Negative if Prior > Posterior (p > q)
 
-for epochs in range(100):
+model = tf.keras.Sequential([
+    DenseReparameterization(15, activation='relu'),
+    DenseReparameterization(1),
+])
+
+optimizer = tf.optimizers.Adam(learning_rate=0.08)
+
+for epochs in range(10000):
     # Shuffle data after epochs...
 
     tf_data = tf_data.shuffle(100)
+
     running_loss = 0.0
     running_likelihood = 0.0
     running_kl_div = 0.0
@@ -43,12 +45,10 @@ for epochs in range(100):
             outputs, kl_divs = [], []
 
             for wi in range(W_SAMPLES):
-                z = l1(x, training=True)
-                z = l2(z, training=True)
+                z = model(x)
 
                 outputs.append(z)
-                kl_divs.append(l1.losses)
-                kl_divs.append(l2.losses)
+                kl_divs.append(model.losses)
 
             outputs = tf.convert_to_tensor(outputs)  # Shape w_samples, batch_size, 2
             kl_divs = tf.convert_to_tensor(kl_divs)
@@ -73,10 +73,13 @@ for epochs in range(100):
             loss = kl_weights * (tf.reduce_sum(kl_divs)) - tf.reduce_sum(log_likelihood)
             running_loss += loss
 
-        # df/dw, muss man da nicht das gesampelte (gemittelte) w nehmen? also tape.gradient(loss, w_samples) ? 
-        trainable_vars = l1.trainable_weights + l2.trainable_weights
+        # df/dw, muss man da nicht das gesampelte (gemittelte) w nehmen? also tape.gradient(loss, w_samples) ?
+        trainable_vars = model.trainable_weights
 
         grads = tape.gradient(loss, trainable_vars)
-        opt.apply_gradients(zip(grads, trainable_vars))
+        optimizer.apply_gradients(zip(grads, trainable_vars))
 
     print("total {}, kl-div {} likelihood {} mse {}".format(running_loss, running_kl_div, running_likelihood, mse))
+
+# model.compile(loss='', optimizer=tf.optimizers.Adam(learning_rate=0.08))
+
