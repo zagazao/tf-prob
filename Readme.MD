@@ -70,6 +70,15 @@ train_op = tf.train.AdamOptimizer().minimize(loss)
 
 - Implement the "good initialization". Therefore we need an implementation of probabilistic linear regression...
 
+### Further papers:
+
+- [Variational Bayesian dropout: pitfalls and fixes](https://arxiv.org/pdf/1807.01969.pdf)
+- [Variational Gaussian Dropout is not Bayesian](https://arxiv.org/pdf/1711.02989.pdf)
+- [Dropout as a Bayesian Approximation: Representing Model Uncertainty in Deep Learning](https://arxiv.org/pdf/1506.02142.pdf)
+- [Characteristics of Monte Carlo Dropout in Wide Neural Networks](https://arxiv.org/pdf/2007.05434.pdf)
+- [A Systematic Comparison of Bayesian Deep LearningRobustness in Diabetic Retinopathy Tasks](http://bayesiandeeplearning.org/2019/papers/12.pdf)
+- [Beyond temperature scaling: Obtaining well-calibrated multiclass probabilities with Dirichlet calibration](https://papers.nips.cc/paper/2019/file/8ca01ea920679a0fe3728441494041b9-Paper.pdf)
+
 ### Random resources
 
 - http://krasserm.github.io/2019/03/14/bayesian-neural-networks/
