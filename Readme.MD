@@ -78,6 +78,10 @@ train_op = tf.train.AdamOptimizer().minimize(loss)
 - [Characteristics of Monte Carlo Dropout in Wide Neural Networks](https://arxiv.org/pdf/2007.05434.pdf)
 - [A Systematic Comparison of Bayesian Deep LearningRobustness in Diabetic Retinopathy Tasks](http://bayesiandeeplearning.org/2019/papers/12.pdf)
 - [Beyond temperature scaling: Obtaining well-calibrated multiclass probabilities with Dirichlet calibration](https://papers.nips.cc/paper/2019/file/8ca01ea920679a0fe3728441494041b9-Paper.pdf)
+- [Bayesian Optimization with Robust Bayesian Neural Networks](https://papers.nips.cc/paper/2016/hash/a96d3afec184766bfeca7a9f989fc7e7-Abstract.html)
+
+- [Bayesian Compression for Deep Learning](https://arxiv.org/abs/1705.08665)
+- [Variational Dropout Sparsifies Deep Neural Networks](https://arxiv.org/abs/1701.05369)
 
 ### Random resources
 
